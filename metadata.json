@@ -1,0 +1,6 @@
+{
+  "name": "Ruivinha VIP",
+  "description": "Plataforma exclusiva de conteúdo privado, feed por assinatura, pacotes avulsos (PPV), videochamadas e checkout Pix Gold com entrega via Telegram.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

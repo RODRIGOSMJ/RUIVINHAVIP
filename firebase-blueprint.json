@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Perfil privado do usuário autenticado com dados de contato no Telegram e status VIP.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "telegramUsername": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "isVipSubscriber": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "isVipSubscriber", "createdAt", "updatedAt"]
+    },
+    "UnlockedPostMarker": {
+      "title": "UnlockedPostMarker",
+      "description": "Registro de post avulso (PPV) desbloqueado pelo usuário.",
+      "type": "object",
+      "properties": {
+        "postId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "unlockedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["postId", "userId", "unlockedAt"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Publicação do feed exclusivo (foto no Firebase Storage ou vídeo no Bunny Stream).",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "caption": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "mediaType": {
+          "type": "string",
+          "enum": ["video", "photo"]
+        },
+        "accessType": {
+          "type": "string",
+          "enum": ["free", "vip", "ppv"]
+        },
+        "price": {
+          "type": "number"
+        },
+        "thumbUrl": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "bunnyVideoId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "likes": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["authorId", "caption", "mediaType", "accessType", "price", "thumbUrl", "bunnyVideoId", "likes", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Registro de pagamento PixGo/Pix Gold e notificação de entrega via Telegram.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "clientTelegram": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 64
+        },
+        "itemKind": {
+          "type": "string",
+          "enum": ["subscription", "ppv", "call", "pack"]
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "amount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["userId", "clientTelegram", "itemKind", "itemId", "title", "amount", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Documentos de perfil dos usuários autenticados."
+    },
+    "/users/{userId}/unlockedPosts/{postId}": {
+      "schema": { "$ref": "#/entities/UnlockedPostMarker" },
+      "description": "Posts PPV desbloqueados por cada usuário."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Publicações do feed paginadas por createdAt."
+    },
+    "/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Histórico de compras PixGo."
+    }
+  }
+}

@@ -1,0 +1,184 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isVerified() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        request.auth.token.email == 'rodrigotricollorgamer@gmail.com'
+      );
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'isVipSubscriber', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'telegramUsername', 'isVipSubscriber', 'createdAt', 'updatedAt'])
+        && data.uid is string
+        && data.uid == userId
+        && data.uid.size() >= 1 && data.uid.size() <= 128
+        && data.email is string
+        && data.email.size() >= 3 && data.email.size() <= 254
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('telegramUsername' in data) || (data.telegramUsername is string && data.telegramUsername.size() <= 64))
+        && data.isVipSubscriber is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUnlockedPost(data, userId, postId) {
+      return data.keys().hasAll(['postId', 'userId', 'unlockedAt'])
+        && data.keys().hasOnly(['postId', 'userId', 'unlockedAt'])
+        && data.postId is string
+        && data.postId == postId
+        && data.postId.size() >= 1 && data.postId.size() <= 128
+        && data.userId is string
+        && data.userId == userId
+        && data.userId.size() >= 1 && data.userId.size() <= 128
+        && data.unlockedAt is timestamp;
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['authorId', 'caption', 'mediaType', 'accessType', 'price', 'thumbUrl', 'bunnyVideoId', 'likes', 'createdAt'])
+        && data.keys().hasOnly(['authorId', 'caption', 'mediaType', 'accessType', 'price', 'thumbUrl', 'bunnyVideoId', 'likes', 'createdAt'])
+        && data.authorId is string
+        && data.authorId.size() >= 1 && data.authorId.size() <= 128
+        && data.caption is string
+        && data.caption.size() >= 1 && data.caption.size() <= 2000
+        && data.mediaType in ['video', 'photo']
+        && data.accessType in ['free', 'vip', 'ppv']
+        && data.price is number
+        && data.price >= 0 && data.price <= 100000
+        && data.thumbUrl is string
+        && data.thumbUrl.size() <= 1000
+        && data.bunnyVideoId is string
+        && data.bunnyVideoId.size() <= 128
+        && data.likes is number
+        && data.likes >= 0
+        && data.createdAt is timestamp;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['userId', 'clientTelegram', 'itemKind', 'itemId', 'title', 'amount', 'createdAt'])
+        && data.keys().hasOnly(['userId', 'clientTelegram', 'itemKind', 'itemId', 'title', 'amount', 'createdAt'])
+        && data.userId is string
+        && data.userId == request.auth.uid
+        && data.userId.size() >= 1 && data.userId.size() <= 128
+        && data.clientTelegram is string
+        && data.clientTelegram.size() >= 2 && data.clientTelegram.size() <= 64
+        && data.itemKind in ['subscription', 'ppv', 'call', 'pack']
+        && data.itemId is string
+        && data.itemId.size() >= 1 && data.itemId.size() <= 128
+        && data.title is string
+        && data.title.size() >= 1 && data.title.size() <= 200
+        && data.amount is number
+        && data.amount > 0 && data.amount <= 100000
+        && data.createdAt is timestamp;
+    }
+
+    // Users Collection (PII isolated to owner or admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && (isOwner(userId) || isAdmin())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'telegramUsername', 'isVipSubscriber', 'updatedAt'])
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /unlockedPosts/{postId} {
+        allow get: if isValidId(userId) && isValidId(postId) && (isOwner(userId) || isAdmin());
+        allow list: if isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow create: if isValidId(userId)
+          && isValidId(postId)
+          && isOwner(userId)
+          && isValidUnlockedPost(incoming(), userId, postId)
+          && incoming().unlockedAt == request.time
+          && exists(/databases/$(database)/documents/posts/$(postId));
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(postId) && isAdmin();
+      }
+    }
+
+    // Posts Collection (Public feed read, admin create/delete, verified user likes)
+    match /posts/{postId} {
+      allow get: if isValidId(postId);
+      allow list: if true;
+      allow create: if isValidId(postId)
+        && isAdmin()
+        && isValidPost(incoming())
+        && incoming().authorId == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(postId)
+        && isSignedIn()
+        && isValidPost(incoming())
+        && incoming().authorId == existing().authorId
+        && incoming().createdAt == existing().createdAt
+        && (
+          isAdmin() ||
+          (
+            isVerified()
+            && incoming().diff(existing()).affectedKeys().hasOnly(['likes'])
+            && (incoming().likes == existing().likes + 1 || incoming().likes == existing().likes - 1)
+          )
+        );
+      allow delete: if isValidId(postId) && isAdmin();
+    }
+
+    // Transactions Collection (Owner create & read, Admin read)
+    match /transactions/{transactionId} {
+      allow get: if isValidId(transactionId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(transactionId)
+        && isSignedIn()
+        && isValidTransaction(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(transactionId) && isAdmin();
+    }
+
+    // Connection test path
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+  }
+}

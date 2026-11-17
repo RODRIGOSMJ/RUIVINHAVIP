@@ -5,6 +5,7 @@ export type FeedFilter = 'all' | 'vip' | 'ppv';
 
 export interface Post {
   id: string;
+  authorId?: string;
   createdAt: string;
   caption: string;
   mediaType: MediaType;
@@ -13,6 +14,7 @@ export interface Post {
   thumbUrl: string;
   bunnyVideoId: string;
   likes: number;
+  isSeed?: boolean;
 }
 
 export interface CallPackage {
@@ -25,9 +27,7 @@ export interface CallPackage {
   highlight: boolean;
 }
 
-export interface ApiConfig {
-  supabaseUrl: string;
-  supabaseKey: string;
+export interface IntegrationConfig {
   bunnyLibId: string;
   pixGoldKey: string;
   tgBotToken: string;
@@ -57,6 +57,9 @@ export interface ToastMessage {
 }
 
 export interface UserAccount {
+  uid: string;
   email: string;
-  isDemo?: boolean;
+  displayName?: string;
+  telegramUsername?: string;
+  isVipSubscriber?: boolean;
 }

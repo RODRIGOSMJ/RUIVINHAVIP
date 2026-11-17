@@ -5,6 +5,7 @@ import { formatBRL } from '../data/initialData';
 
 interface CheckoutModalProps {
   item: CheckoutItem | null;
+  defaultTelegramHandle?: string;
   onClose: () => void;
   onGenerateQr: (telegramHandle: string) => void;
   onConfirmPayment: (telegramHandle: string) => void;
@@ -18,6 +19,7 @@ const PIX_COPY_PASTE =
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   item,
+  defaultTelegramHandle = '',
   onClose,
   onGenerateQr,
   onConfirmPayment,
@@ -31,8 +33,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (item) {
       setStep('form');
       setCopied(false);
+      setTelegramInput(defaultTelegramHandle.replace(/^@/, ''));
     }
-  }, [item]);
+  }, [item, defaultTelegramHandle]);
 
   useEffect(() => {
     if (!item) return;

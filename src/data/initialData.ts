@@ -17,13 +17,12 @@ export const PRESET_THUMBNAILS = [
 ];
 
 export const STORAGE_KEYS = {
-  CONFIG: 'ruivinha_vip_api_config',
-  POSTS: 'ruivinha_vip_posts',
-  UNLOCKED: 'ruivinha_vip_unlocked_items',
-  SUBSCRIPTION: 'ruivinha_vip_is_subscriber',
-  LOGS: 'ruivinha_vip_tx_logs',
+  CONFIG: 'ruivinha_vip_integrations_config',
   LIKED_POSTS: 'ruivinha_vip_liked_posts',
+  PREVIEW_VIP: 'ruivinha_vip_preview_override',
 } as const;
+
+export const POSTS_PAGE_SIZE = 12;
 
 export const CALLS_AND_PACKAGES: CallPackage[] = [
   {
@@ -80,6 +79,7 @@ export const DEFAULT_POSTS: Post[] = [
     thumbUrl: EDITORIAL_PREVIEW_IMAGE,
     bunnyVideoId: '',
     likes: 342,
+    isSeed: true,
   },
   {
     id: 'post-2',
@@ -92,6 +92,7 @@ export const DEFAULT_POSTS: Post[] = [
     thumbUrl: STUDIO_VIP_IMAGE,
     bunnyVideoId: 'demo-video-vip-01',
     likes: 518,
+    isSeed: true,
   },
   {
     id: 'post-3',
@@ -104,6 +105,7 @@ export const DEFAULT_POSTS: Post[] = [
     thumbUrl: VELVET_SUITE_IMAGE,
     bunnyVideoId: 'demo-video-ppv-02',
     likes: 429,
+    isSeed: true,
   },
 ];
 
